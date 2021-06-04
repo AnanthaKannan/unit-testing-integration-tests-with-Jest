@@ -2,40 +2,77 @@ const TodoController = require('../../controller/todo.controller');
 const TodoModel = require('../../model/todo.model');
 const httpMocks = require('node-mocks-http');
 const newTodo = require('../mock-data/new-todo.json');
+const allTodo = require('../mock-data/all-todo.json');
 
 TodoModel.create = jest.fn();
+TodoModel.find = jest.fn();
 
 let req, res, next;
-beforeEach(() =>{
-    req = httpMocks.createRequest();
-    res = httpMocks.createResponse();
-    next = null;
+beforeEach(() => {
+  req = httpMocks.createRequest();
+  res = httpMocks.createResponse();
+  next = jest.fn();
+});
+
+describe('TodoController.getToDos', () => {
+  it('should have a getTodo function', () => {
+    expect(typeof TodoController.getTodo).toBe('function');
+  });
+
+  it('should call TodoModel.find({})', async() => {
+    await TodoController.getTodo(req, res, next);
+    expect(TodoModel.find).toHaveBeenCalledWith({});
+  });
+
+  it('should return response with status 200 and all todo', async() => {
+    TodoModel.find.mockReturnValue(allTodo);
+    await TodoController.getTodo(req, res, next);
+    expect(res.statusCode).toBe(200);
+    expect(res._isEndCalled()).toBeTruthy(); 
+    expect(res._getJSONData()).toStrictEqual(allTodo);
+  });
+
+  it('should handle error in getTodo', async() => {
+    const errorMessage = { message: 'Error Finding'};
+    const rejectPromise = Promise.reject(errorMessage);
+    TodoModel.find.mockReturnValue(rejectPromise);
+    await TodoController.getTodo(req, res, next);
+    expect(next).toHaveBeenCalledWith(errorMessage)
+  });
+
 });
 
 describe('TodoController.createTodo', () => {
+  beforeEach(() => {
+    req.body = newTodo;
+  });
 
-    beforeEach(() => {
-        req.body = newTodo;
-    })
+  it('should have a createTodo function', () => {
+    expect(typeof TodoController.createTodo).toBe('function');
+  });
 
-    it('should have a createTodo function', () => {
-        expect(typeof TodoController.createTodo).toBe('function')
-    });
+  it('should call TodoModel.create', () => {
+    TodoController.createTodo(req, res, next);
+    expect(TodoModel.create).toBeCalledWith(newTodo);
+  });
 
-    it('should call TodoModel.create', () => {
-        TodoController.createTodo(req, res, next);
-        expect(TodoModel.create).toBeCalledWith(newTodo);
-    });
+  it('should return 201 response code', async () => {
+    await TodoController.createTodo(req, res, next);
+    expect(res.statusCode).toBe(201);
+    expect(res._isEndCalled()).toBeTruthy(); // check whether the response is coming or not
+  });
 
-    it('should return 201 response code', () => {
-        TodoController.createTodo(req, res, next);
-        expect(res.statusCode).toBe(201);
-        expect(res._isEndCalled()).toBeTruthy(); // check for empty response
-    });
+  it('it should json body in response', async () => {
+    TodoModel.create.mockReturnValue(newTodo);
+    await TodoController.createTodo(req, res, next);
+    expect(res._getJSONData()).toStrictEqual(newTodo);
+  });
 
-    it('it should json body in response', () => {
-        TodoModel.create.mockReturnValue(newTodo);
-        TodoController.createTodo(req, res, next);
-        expect(res._getJSONData()).toStrictEqual(newTodo);
-    });
-})
+  it('it should handle error', async () => {
+    const errorMessage = { message: 'Done property missing' };
+    const rejectedPromise = Promise.reject(errorMessage);
+    TodoModel.create.mockReturnValue(rejectedPromise);
+    await TodoController.createTodo(req, res, next);
+    expect(next).toBeCalledWith(errorMessage);
+  });
+});

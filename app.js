@@ -1,15 +1,15 @@
 const express = require('express');
 const app = express();
 const todoRoutes = require('./routes/todo.route');
+const mongoDb = require('./mongodb/mongodb.connect')
 
-app.use('/to-dos', todoRoutes)
+mongoDb.connect();
+app.use(express.json());
 
-app.get('/', (req, res) => {
-    res.send('Hello world')
-});
+app.use('/to-dos', todoRoutes);
 
-app.listen(3000, () => {
-    // console.log('server running')
+app.use((error, req, res, next) => {
+    res.status(500).json({message: error.message})
 });
 
 module.exports = app;
