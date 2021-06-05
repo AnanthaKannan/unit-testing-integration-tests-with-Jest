@@ -20,5 +20,15 @@ describe(endPointUrl, () => {
       message: 'Todo validation failed: done: Path `done` is required.',
     });
   });
+
+describe(endPointUrl, () =>{
+    it(`GET ${endPointUrl}`, async() =>{
+        const response = await request(app).get(endPointUrl);
+        expect(response.statusCode).toBe(200);
+        expect(Array.isArray(response.body)).toBeTruthy();
+        expect(response.body[0].title).toBeDefined();
+        expect(response.body[0].done).toBeDefined();
+    });
+});
   
 });
